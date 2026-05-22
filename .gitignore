@@ -1,0 +1,30 @@
+# Node dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Local Environment Secrets
+.env
+backend/.env
+frontend/.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+
+# Production Build outputs
+dist/
+frontend/dist/
+build/
+
+# Uploaded Files & Generated Reports (Dynamic data)
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/reports/*
+!backend/reports/.gitkeep
+
+# Editor & OS configurations
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
