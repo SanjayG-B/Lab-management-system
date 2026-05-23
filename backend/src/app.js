@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
   res.json({
     status: 'online',
     message: 'AI Lab Management API is running.',
-    mode: global.isMockDB ? 'Demo Mode (In-Memory Database Fallback)' : 'Production Mode (MongoDB Connection Active)'
+    mode: 'Production Mode (SQLite Database Active)'
   });
 });
 

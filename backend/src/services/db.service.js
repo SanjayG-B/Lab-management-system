@@ -1,192 +1,247 @@
-import { User } from '../models/User.js';
-import { Student } from '../models/Student.js';
-import { Equipment } from '../models/Equipment.js';
-import { Inventory } from '../models/Inventory.js';
-import { Experiment } from '../models/Experiment.js';
-import { Attendance } from '../models/Attendance.js';
-import { Report } from '../models/Report.js';
-import { Notification } from '../models/Notification.js';
-import { AILog } from '../models/AILog.js';
-import bcrypt from 'bcryptjs';
+import { dbInstance } from '../config/db.js';
 
-const models = {
-  User,
-  Student,
-  Equipment,
-  Inventory,
-  Experiment,
-  Attendance,
-  Report,
-  Notification,
-  AILog
+// Promisified SQL query helpers
+const runQuery = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    dbInstance.run(sql, params, function (err) {
+      if (err) reject(err);
+      else resolve(this);
+    });
+  });
 };
 
-const mockDb = {
-  User: [],
-  Student: [],
-  Equipment: [],
-  Inventory: [],
-  Experiment: [],
-  Attendance: [],
-  Report: [],
-  Notification: [],
-  AILog: []
+const allQuery = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    dbInstance.all(sql, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
 };
 
-let seeded = false;
+const getQuery = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    dbInstance.get(sql, params, (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+};
 
-export const seedMockData = async () => {
-  if (seeded) return;
-  seeded = true;
+// Deserialize SQLite rows to match JS/MongoDB models structure
+const deserialize = (modelName, row) => {
+  if (!row) return null;
+  const record = { ...row };
 
-  // Hash password for mocks
-  const salt = await bcrypt.genSalt(10);
-  const adminHash = await bcrypt.hash('admin123', salt);
-  const staffHash = await bcrypt.hash('staff123', salt);
-  const studentHash = await bcrypt.hash('student123', salt);
-
-  mockDb.User = [
-    { _id: 'u1', name: 'Dr. Sarah Smith', email: 'admin@lab.edu', password: adminHash, role: 'hod', status: 'active', createdAt: new Date() },
-    { _id: 'u2', name: 'John Doe (Staff)', email: 'staff@lab.edu', password: staffHash, role: 'staff', status: 'active', createdAt: new Date() },
-    { _id: 'u3', name: 'Alex Johnson', email: 'student@lab.edu', password: studentHash, role: 'student', status: 'active', createdAt: new Date() }
-  ];
-
-  mockDb.Student = [
-    { _id: 's1', user: 'u3', rollNumber: 'CS2026001', department: 'CSE', semester: 4, phone: '555-0199', attendancePercentage: 88, assignedEquipment: [] }
-  ];
-
-  mockDb.Equipment = [
-    { _id: 'e1', name: 'Digital Oscilloscope', serialNumber: 'OSC-48920', category: 'EC', location: 'Lab Room 204, Shelf A', status: 'available', lastMaintenanceDate: new Date('2026-02-15'), nextMaintenanceDate: new Date('2026-08-15'), usageHours: 124, qrCodeUrl: '' },
-    { _id: 'e2', name: 'Spectrophotometer', serialNumber: 'SPEC-77301', category: 'CE', location: 'Lab Room 102, Table 3', status: 'maintenance', lastMaintenanceDate: new Date('2025-11-10'), nextMaintenanceDate: new Date('2026-05-10'), usageHours: 320, qrCodeUrl: '' },
-    { _id: 'e3', name: 'Function Generator', serialNumber: 'FG-99281', category: 'EC', location: 'Lab Room 204, Shelf B', status: 'available', lastMaintenanceDate: new Date('2026-03-01'), nextMaintenanceDate: new Date('2026-09-01'), usageHours: 45, qrCodeUrl: '' },
-    { _id: 'e4', name: 'Centrifuge Model X', serialNumber: 'CEN-33291', category: 'AIML', location: 'Lab Room 301, Bench 1', status: 'damaged', lastMaintenanceDate: new Date('2026-01-20'), nextMaintenanceDate: new Date('2026-07-20'), usageHours: 512, qrCodeUrl: '' }
-  ];
-
-  mockDb.Inventory = [
-    { _id: 'i1', itemName: 'Resistor Pack (10k Ohm)', category: 'EC', quantity: 150, threshold: 30, unit: 'pcs', costPerUnit: 0.10, supplier: 'DigiKey', lastRestocked: new Date() },
-    { _id: 'i2', itemName: 'Hydrochloric Acid 1M', category: 'CE', quantity: 2, threshold: 5, unit: 'Liters', costPerUnit: 15.00, supplier: 'Sigma-Aldrich', lastRestocked: new Date() },
-    { _id: 'i3', itemName: 'Petri Dishes', category: 'AIML', quantity: 4, threshold: 20, unit: 'boxes', costPerUnit: 12.50, supplier: 'Fisher Scientific', lastRestocked: new Date() },
-    { _id: 'i4', itemName: 'Connecting Wires (M-M)', category: 'EC', quantity: 250, threshold: 50, unit: 'pcs', costPerUnit: 0.25, supplier: 'Adafruit', lastRestocked: new Date() }
-  ];
-
-  mockDb.Experiment = [
-    {
-      _id: 'ex1',
-      title: 'Verification of Ohm\'s Law',
-      code: 'PHY-101',
-      description: 'Study the relationship between voltage, current, and resistance in a simple DC circuit.',
-      department: 'CSE',
-      manualUrl: '/manuals/ohms_law.pdf',
-      status: 'active',
-      submissions: [
-        { student: 's1', fileUrl: '/uploads/ohms_law_submission.pdf', ocrText: 'Lab record: V = IR. R = V/I. Readings: V=2V, I=0.2A, R=10 Ohm. V=4V, I=0.4A, R=10 Ohm. Conclusion verified.', grade: 'A', submittedAt: new Date() }
-      ]
-    },
-    {
-      _id: 'ex2',
-      title: 'Acid-Base Titration',
-      code: 'CHM-102',
-      description: 'Determine the concentration of an unknown hydrochloric acid solution using standard sodium hydroxide.',
-      department: 'CE',
-      manualUrl: '/manuals/titration.pdf',
-      status: 'active',
-      submissions: []
+  // Parse JSON columns back to arrays/objects
+  if (modelName === 'Student' && record.assignedEquipment) {
+    try {
+      record.assignedEquipment = JSON.parse(record.assignedEquipment);
+    } catch (e) {
+      record.assignedEquipment = [];
     }
-  ];
+  }
+  if (modelName === 'Experiment' && record.submissions) {
+    try {
+      record.submissions = JSON.parse(record.submissions);
+    } catch (e) {
+      record.submissions = [];
+    }
+  }
+  if (modelName === 'AILog') {
+    if (record.inputData) {
+      try { record.inputData = JSON.parse(record.inputData); } catch (e) { record.inputData = null; }
+    }
+    if (record.outputResult) {
+      try { record.outputResult = JSON.parse(record.outputResult); } catch (e) { record.outputResult = null; }
+    }
+  }
 
-  mockDb.Attendance = [
-    { _id: 'a1', student: 's1', date: new Date('2026-05-18'), status: 'present', labSession: 'Physics Lab A' },
-    { _id: 'a2', student: 's1', date: new Date('2026-05-20'), status: 'present', labSession: 'Chemistry Lab B' }
-  ];
+  // Convert booleans
+  if (modelName === 'Notification') {
+    record.isRead = !!record.isRead;
+  }
 
-  mockDb.Notification = [
-    { _id: 'n1', title: 'Low Stock Warning', message: 'Hydrochloric Acid 1M is below the warning threshold (2 Liters remaining).', type: 'stock', recipientRole: 'all', isRead: false, createdAt: new Date() },
-    { _id: 'n2', title: 'Low Stock Warning', message: 'Petri Dishes is below the warning threshold (4 boxes remaining).', type: 'stock', recipientRole: 'all', isRead: false, createdAt: new Date() },
-    { _id: 'n3', title: 'Maintenance Overdue', message: 'Spectrophotometer (SPEC-77301) requires calibration.', type: 'maintenance', recipientRole: 'hod', isRead: false, createdAt: new Date() }
-  ];
+  // Convert ISO Date strings to JavaScript Date objects
+  for (const key in record) {
+    if (typeof record[key] === 'string' && (key.endsWith('Date') || key.endsWith('At') || key === 'timestamp')) {
+      record[key] = new Date(record[key]);
+    }
+  }
+
+  return record;
+};
+
+// Serialize JS/MongoDB models structure into SQLite database formats
+const serialize = (modelName, data) => {
+  const record = { ...data };
+
+  // Ensure unique primary key _id
+  if (!record._id) {
+    record._id = 'id_' + Math.random().toString(36).substring(2, 11);
+  }
+
+  // Set defaults for missing fields to satisfy NOT NULL constraints
+  if (modelName === 'User') {
+    if (!record.createdAt) record.createdAt = new Date().toISOString();
+    if (!record.status) record.status = 'active';
+  }
+  if (modelName === 'Student') {
+    if (record.attendancePercentage === undefined) record.attendancePercentage = 100;
+    if (!record.assignedEquipment) record.assignedEquipment = [];
+  }
+  if (modelName === 'Equipment') {
+    if (!record.status) record.status = 'available';
+    if (!record.lastMaintenanceDate) record.lastMaintenanceDate = new Date().toISOString();
+    if (record.usageHours === undefined) record.usageHours = 0;
+  }
+  if (modelName === 'Inventory') {
+    if (record.quantity === undefined) record.quantity = 0;
+    if (record.threshold === undefined) record.threshold = 5;
+    if (!record.unit) record.unit = 'pcs';
+    if (!record.lastRestocked) record.lastRestocked = new Date().toISOString();
+  }
+  if (modelName === 'Experiment') {
+    if (!record.status) record.status = 'active';
+    if (!record.submissions) record.submissions = [];
+  }
+  if (modelName === 'Attendance') {
+    if (!record.date) record.date = new Date().toISOString();
+  }
+  if (modelName === 'Notification') {
+    if (!record.recipientRole) record.recipientRole = 'all';
+    if (record.isRead === undefined) record.isRead = 0;
+    if (!record.createdAt) record.createdAt = new Date().toISOString();
+  }
+  if (modelName === 'Report') {
+    if (!record.createdAt) record.createdAt = new Date().toISOString();
+  }
+  if (modelName === 'AILog') {
+    if (!record.timestamp) record.timestamp = new Date().toISOString();
+  }
+
+  // Stringify JSON columns
+  if (modelName === 'Student' && record.assignedEquipment) {
+    record.assignedEquipment = JSON.stringify(record.assignedEquipment);
+  }
+  if (modelName === 'Experiment' && record.submissions) {
+    record.submissions = JSON.stringify(record.submissions);
+  }
+  if (modelName === 'AILog') {
+    if (record.inputData) record.inputData = JSON.stringify(record.inputData);
+    if (record.outputResult) record.outputResult = JSON.stringify(record.outputResult);
+  }
+
+  // Convert booleans to integers
+  if (modelName === 'Notification' && record.isRead !== undefined) {
+    record.isRead = record.isRead ? 1 : 0;
+  }
+
+  // Convert Date objects to ISO strings
+  for (const key in record) {
+    if (record[key] instanceof Date) {
+      record[key] = record[key].toISOString();
+    }
+  }
+
+  return record;
 };
 
 export const dbService = {
   find: async (modelName, query = {}) => {
-    if (!global.isMockDB) {
-      return await models[modelName].find(query);
+    const keys = Object.keys(query);
+    let sql = `SELECT * FROM ${modelName}`;
+    const params = [];
+    
+    if (keys.length > 0) {
+      const conditions = keys.map(k => `${k} = ?`).join(' AND ');
+      sql += ` WHERE ${conditions}`;
+      params.push(...keys.map(k => query[k]));
     }
-    await seedMockData();
-    let records = [...mockDb[modelName]];
-    return records.filter(item => {
-      for (let key in query) {
-        if (query[key] !== undefined) {
-          const itemVal = item[key]?.toString();
-          const queryVal = query[key]?.toString();
-          if (itemVal !== queryVal) return false;
-        }
-      }
-      return true;
-    });
+    
+    const rows = await allQuery(sql, params);
+    return rows.map(row => deserialize(modelName, row));
   },
 
   findOne: async (modelName, query = {}) => {
-    if (!global.isMockDB) {
-      return await models[modelName].findOne(query);
+    const keys = Object.keys(query);
+    let sql = `SELECT * FROM ${modelName}`;
+    const params = [];
+    
+    if (keys.length > 0) {
+      const conditions = keys.map(k => `${k} = ?`).join(' AND ');
+      sql += ` WHERE ${conditions}`;
+      params.push(...keys.map(k => query[k]));
     }
-    await seedMockData();
-    const records = mockDb[modelName];
-    return records.find(item => {
-      for (let key in query) {
-        if (query[key] !== undefined) {
-          const itemVal = item[key]?.toString();
-          const queryVal = query[key]?.toString();
-          if (itemVal !== queryVal) return false;
-        }
-      }
-      return true;
-    }) || null;
+    sql += ` LIMIT 1`;
+    
+    const row = await getQuery(sql, params);
+    return deserialize(modelName, row);
   },
 
   findById: async (modelName, id) => {
-    if (!global.isMockDB) {
-      return await models[modelName].findById(id);
-    }
-    await seedMockData();
-    return mockDb[modelName].find(item => item._id?.toString() === id?.toString()) || null;
+    const row = await getQuery(`SELECT * FROM ${modelName} WHERE _id = ?`, [id]);
+    return deserialize(modelName, row);
   },
 
   create: async (modelName, data) => {
-    if (!global.isMockDB) {
-      return await models[modelName].create(data);
-    }
-    await seedMockData();
-    const newRecord = {
-      _id: Math.random().toString(36).substring(2, 9),
-      ...data,
-      createdAt: new Date()
-    };
-    mockDb[modelName].push(newRecord);
-    return newRecord;
+    const serialized = serialize(modelName, data);
+    const columns = Object.keys(serialized);
+    const placeholders = columns.map(() => '?').join(', ');
+    const sql = `INSERT INTO ${modelName} (${columns.join(', ')}) VALUES (${placeholders})`;
+    const params = columns.map(col => serialized[col]);
+    
+    await runQuery(sql, params);
+    return deserialize(modelName, serialized);
   },
 
   findByIdAndUpdate: async (modelName, id, updateData) => {
-    if (!global.isMockDB) {
-      return await models[modelName].findByIdAndUpdate(id, updateData, { new: true });
+    // Check if record exists
+    const exists = await dbService.findById(modelName, id);
+    if (!exists) return null;
+
+    const serialized = { ...updateData };
+
+    // Stringify JSON columns
+    if (modelName === 'Student' && serialized.assignedEquipment) {
+      serialized.assignedEquipment = JSON.stringify(serialized.assignedEquipment);
     }
-    await seedMockData();
-    const idx = mockDb[modelName].findIndex(item => item._id?.toString() === id?.toString());
-    if (idx === -1) return null;
-    mockDb[modelName][idx] = {
-      ...mockDb[modelName][idx],
-      ...updateData
-    };
-    return mockDb[modelName][idx];
+    if (modelName === 'Experiment' && serialized.submissions) {
+      serialized.submissions = JSON.stringify(serialized.submissions);
+    }
+    if (modelName === 'AILog') {
+      if (serialized.inputData) serialized.inputData = JSON.stringify(serialized.inputData);
+      if (serialized.outputResult) serialized.outputResult = JSON.stringify(serialized.outputResult);
+    }
+
+    // Convert booleans to integers
+    if (modelName === 'Notification' && serialized.isRead !== undefined) {
+      serialized.isRead = serialized.isRead ? 1 : 0;
+    }
+
+    // Convert Date objects to ISO strings
+    for (const key in serialized) {
+      if (serialized[key] instanceof Date) {
+        serialized[key] = serialized[key].toISOString();
+      }
+    }
+
+    const columns = Object.keys(serialized);
+    if (columns.length > 0) {
+      const setClause = columns.map(col => `${col} = ?`).join(', ');
+      const sql = `UPDATE ${modelName} SET ${setClause} WHERE _id = ?`;
+      const params = [...columns.map(col => serialized[col]), id];
+      await runQuery(sql, params);
+    }
+
+    return await dbService.findById(modelName, id);
   },
 
   findByIdAndDelete: async (modelName, id) => {
-    if (!global.isMockDB) {
-      return await models[modelName].findByIdAndDelete(id);
-    }
-    await seedMockData();
-    const idx = mockDb[modelName].findIndex(item => item._id?.toString() === id?.toString());
-    if (idx === -1) return null;
-    const deleted = mockDb[modelName].splice(idx, 1);
-    return deleted[0];
+    const record = await dbService.findById(modelName, id);
+    if (!record) return null;
+    
+    await runQuery(`DELETE FROM ${modelName} WHERE _id = ?`, [id]);
+    return record;
   }
 };

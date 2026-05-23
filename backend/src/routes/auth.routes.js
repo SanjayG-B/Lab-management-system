@@ -1,7 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { dbService } from '../services/db.service.js';
-import { User } from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
 
@@ -67,13 +66,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
-    let isMatch = false;
-    if (global.isMockDB) {
-      isMatch = await bcrypt.compare(password, user.password);
-    } else {
-      const userInstance = await User.findById(user._id);
-      isMatch = await userInstance.comparePassword(password);
-    }
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });

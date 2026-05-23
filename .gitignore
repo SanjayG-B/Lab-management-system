@@ -23,6 +23,10 @@ backend/uploads/*
 backend/reports/*
 !backend/reports/.gitkeep
 
+# SQLite Database
+*.sqlite
+backend/database.sqlite
+
 # Editor & OS configurations
 .vscode/
 .idea/
