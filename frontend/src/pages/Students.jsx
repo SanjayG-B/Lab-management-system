@@ -155,12 +155,14 @@ export default function Students() {
             >
               <Calendar size={16} /> Log Attendance
             </button>
-            <button
-              onClick={() => { resetForm(); setShowAddModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-darkBg font-bold rounded-lg btn-glow-emerald hover:opacity-95 transition text-xs"
-            >
-              <Plus size={16} /> Register Student
-            </button>
+            {user?.role === 'hod' && (
+              <button
+                onClick={() => { resetForm(); setShowAddModal(true); }}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-darkBg font-bold rounded-lg btn-glow-emerald hover:opacity-95 transition text-xs"
+              >
+                <Plus size={16} /> Register Student
+              </button>
+            )}
           </div>
         )}
       </div>
