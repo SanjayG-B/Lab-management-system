@@ -33,8 +33,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve files uploaded by users
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use('/reports', express.static(path.join(__dirname, '../reports')));
+const isVercel = process.env.VERCEL || process.env.NOW_BUILDER;
+app.use('/uploads', express.static(isVercel ? '/tmp/uploads' : path.join(__dirname, '../uploads')));
+app.use('/reports', express.static(isVercel ? '/tmp/reports' : path.join(__dirname, '../reports')));
 
 // Bind routes
 app.use('/api/v1/auth', authRoutes);

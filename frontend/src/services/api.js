@@ -9,9 +9,14 @@ const getHeaders = () => {
   return headers;
 };
 
+const getBaseUrl = () => {
+  // Returns backend API URL in production, or empty string (relative) in dev
+  return import.meta.env.VITE_API_URL || '';
+};
+
 export const api = {
   get: async (url) => {
-    const res = await fetch(url, { headers: getHeaders() });
+    const res = await fetch(`${getBaseUrl()}${url}`, { headers: getHeaders() });
     return await res.json();
   },
   post: async (url, data, isMultipart = false) => {
@@ -20,7 +25,7 @@ export const api = {
       delete headers['Content-Type']; // Let browser set bounds
     }
     const body = isMultipart ? data : JSON.stringify(data);
-    const res = await fetch(url, {
+    const res = await fetch(`${getBaseUrl()}${url}`, {
       method: 'POST',
       headers,
       body
@@ -28,7 +33,7 @@ export const api = {
     return await res.json();
   },
   put: async (url, data) => {
-    const res = await fetch(url, {
+    const res = await fetch(`${getBaseUrl()}${url}`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -36,14 +41,14 @@ export const api = {
     return await res.json();
   },
   delete: async (url) => {
-    const res = await fetch(url, {
+    const res = await fetch(`${getBaseUrl()}${url}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
     return await res.json();
   },
   patch: async (url, data = {}) => {
-    const res = await fetch(url, {
+    const res = await fetch(`${getBaseUrl()}${url}`, {
       method: 'PATCH',
       headers: getHeaders(),
       body: JSON.stringify(data)
