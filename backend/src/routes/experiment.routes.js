@@ -124,4 +124,22 @@ router.post('/:id/submit', protect, upload.single('recordImage'), async (req, re
   }
 });
 
+// Remove manual for an existing experiment (Admin & Staff)
+router.delete('/:id/manual', protect, authorize('hod', 'staff'), async (req, res) => {
+  try {
+    const experiment = await dbService.findById('Experiment', req.params.id);
+    if (!experiment) {
+      return res.status(404).json({ success: false, message: 'Experiment syllabus item not found.' });
+    }
+
+    const updated = await dbService.findByIdAndUpdate('Experiment', req.params.id, {
+      manualUrl: ''
+    });
+
+    res.status(200).json({ success: true, message: 'Lab manual removed successfully.', data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;

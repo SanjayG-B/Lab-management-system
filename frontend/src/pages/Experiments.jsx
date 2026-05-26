@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { GraduationCap, Plus, BookOpen, Upload, Download, Eye, FileText, Sparkles } from 'lucide-react';
+import { GraduationCap, Plus, BookOpen, Upload, Download, Eye, FileText, Sparkles, Trash2 } from 'lucide-react';
 
 export default function Experiments() {
   const { user } = useAuth();
@@ -133,6 +133,22 @@ export default function Experiments() {
     }
   };
 
+  const handleDeleteManual = async (experimentId) => {
+    if (!window.confirm('Are you sure you want to remove the lab manual for this experiment?')) {
+      return;
+    }
+    try {
+      const res = await api.delete(`/api/v1/experiments/${experimentId}/manual`);
+      if (res.success) {
+        fetchExperiments();
+      } else {
+        alert(res.message || 'Failed to remove lab manual.');
+      }
+    } catch (err) {
+      alert('An error occurred while removing the manual.');
+    }
+  };
+
   const resetAddForm = () => {
     setTitle('');
     setCode('');
@@ -198,13 +214,22 @@ export default function Experiments() {
                       <Download size={14} /> Download Manual PDF
                     </a>
                     {user?.role !== 'student' && (
-                      <button
-                        onClick={() => { setSelectedExperiment(exp); setShowUploadManualModal(true); }}
-                        className="px-3 py-2 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-lg text-xs font-semibold transition"
-                        title="Update Manual"
-                      >
-                        <Upload size={14} />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => { setSelectedExperiment(exp); setShowUploadManualModal(true); }}
+                          className="px-2.5 py-2 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-lg text-xs font-semibold transition"
+                          title="Update Manual"
+                        >
+                          <Upload size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteManual(exp._id)}
+                          className="px-2.5 py-2 bg-red-500/10 hover:bg-red-500/20 text-accentRed rounded-lg text-xs font-semibold transition"
+                          title="Delete Manual"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
                     )}
                   </div>
                 ) : (
