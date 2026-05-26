@@ -69,3 +69,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Express server running on port: ${PORT}`);
   console.log(`💡 Demo Credentials:\n   - HOD: admin@lab.edu (pass: admin123)\n   - Staff: staff@lab.edu (pass: staff123)\n   - Student: student@lab.edu (pass: student123)`);
 });
+
+export default app;
