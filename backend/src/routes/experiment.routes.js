@@ -3,6 +3,12 @@ import { dbService } from '../services/db.service.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { upload } from '../middleware/multer.js';
 import { aiService } from '../services/ai.service.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
@@ -132,11 +138,53 @@ router.delete('/:id/manual', protect, authorize('hod', 'staff'), async (req, res
       return res.status(404).json({ success: false, message: 'Experiment syllabus item not found.' });
     }
 
+    // Physically delete file from uploads directory if it exists
+    if (experiment.manualUrl && experiment.manualUrl.startsWith('/uploads/')) {
+      const filePath = path.join(__dirname, '../..', experiment.manualUrl);
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+          console.log(`Successfully deleted physical file: ${filePath}`);
+        } catch (fileErr) {
+          console.error(`Error deleting physical file ${filePath}: ${fileErr.message}`);
+        }
+      }
+    }
+
     const updated = await dbService.findByIdAndUpdate('Experiment', req.params.id, {
       manualUrl: ''
     });
 
     res.status(200).json({ success: true, message: 'Lab manual removed successfully.', data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Delete experiment syllabus completely (Admin & Staff)
+router.delete('/:id', protect, authorize('hod', 'staff'), async (req, res) => {
+  try {
+    const experiment = await dbService.findById('Experiment', req.params.id);
+    if (!experiment) {
+      return res.status(404).json({ success: false, message: 'Experiment syllabus item not found.' });
+    }
+
+    // Delete the file on disk if it exists
+    if (experiment.manualUrl && experiment.manualUrl.startsWith('/uploads/')) {
+      const filePath = path.join(__dirname, '../..', experiment.manualUrl);
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+          console.log(`Successfully deleted physical file: ${filePath}`);
+        } catch (fileErr) {
+          console.error(`Error deleting physical file: ${fileErr.message}`);
+        }
+      }
+    }
+
+    await dbService.findByIdAndDelete('Experiment', req.params.id);
+
+    res.status(200).json({ success: true, message: 'Experiment syllabus item deleted successfully.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -149,6 +149,22 @@ export default function Experiments() {
     }
   };
 
+  const handleDeleteExperiment = async (experimentId) => {
+    if (!window.confirm('Are you sure you want to delete this entire experiment syllabus card? All submissions and files will be permanently lost.')) {
+      return;
+    }
+    try {
+      const res = await api.delete(`/api/v1/experiments/${experimentId}`);
+      if (res.success) {
+        fetchExperiments();
+      } else {
+        alert(res.message || 'Failed to delete experiment syllabus.');
+      }
+    } catch (err) {
+      alert('An error occurred while deleting the experiment.');
+    }
+  };
+
   const resetAddForm = () => {
     setTitle('');
     setCode('');
@@ -197,7 +213,18 @@ export default function Experiments() {
                     </span>
                     <h3 className="text-sm font-semibold text-white mt-1.5 truncate">{exp.title}</h3>
                   </div>
-                  <span className="text-[10px] text-gray-500 font-medium">{exp.department}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-500 font-medium">{exp.department}</span>
+                    {user?.role !== 'student' && (
+                      <button
+                        onClick={() => handleDeleteExperiment(exp._id)}
+                        className="p-1 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded-md transition"
+                        title="Delete Syllabus Card"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 <p className="text-xs text-gray-400 line-clamp-3 leading-relaxed">{exp.description}</p>
